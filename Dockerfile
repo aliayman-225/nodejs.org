@@ -1,22 +1,21 @@
-FROM node:18-alpine
-
-# Set the working directory
+FROM node:20 AS builder
 WORKDIR /app
-
-# Copy the package.json and package-lock.json files
-COPY package*.json ./
-
-# Install the dependencies
-RUN npm install
-
-# Copy the rest of the application code
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
-
-# Build the Next.js app
 RUN npm run build
 
-# Expose the required port
+FROM node:20 AS runner
+WORKDIR /app
+COPY --from=builder /app ./
 EXPOSE 3000
+CMD ["node", "build/index.js"]
 
-# Start the application
-CMD ["npm", "start"]
+FROM node:20 AS developer
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+EXPOSE 3000
+CMD ["npx", "turbo", "dev"]
+
